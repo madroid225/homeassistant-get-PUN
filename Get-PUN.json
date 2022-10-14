@@ -1,0 +1,609 @@
+[
+    {
+        "id": "e554ad1b4b896472",
+        "type": "function",
+        "z": "90e9a14d.cfa94",
+        "name": "Altre componenti tariffarie (Cusf)",
+        "func": "var debug = msg.debug;\n\n\n//TRAS trasmissione = https://www.arera.it/it/elettricita/trasmissione.htm)\nvar tras = 0.7 //€cent/kWh\n\n//distribuzione\nvar distr = 9250.21 // centesimi di euro/punto di prelievo/anno \n\n//dispacciamento : fonte TERNA ricalcolo su base trimestrale\nvar disp = 6.483 //€/MWh\n\n//UC3 e CU6 : https://www.arera.it/it/elettricita/auc.htm#:~:text=UC3%3A%20a%20copertura%20degli%20squilibri,recuperi%20di%20qualit%C3%A0%20del%20servizio.\nvar uc3 = 0 //€cent/kWh\n\n//normalizzazione\nvar cusf = (tras +uc3) / 100 + disp /1000\n//il valore di distribuzione non essendo al KWh non può entrare quì\n\nmsg.CUsf = Math.round(cusf * 1000)/1000;\n\nreturn msg;\n\nfunction log(titolo, msg) {\n    if (debug) node.warn({ operazione: titolo, dettagli: msg });\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 590,
+        "y": 1300,
+        "wires": [
+            [
+                "f6dc1e9aa204a2ae"
+            ]
+        ]
+    },
+    {
+        "id": "f6dc1e9aa204a2ae",
+        "type": "switch",
+        "z": "90e9a14d.cfa94",
+        "name": "! TEST",
+        "property": "debug",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "false"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 810,
+        "y": 1300,
+        "wires": [
+            [
+                "67e1c7fe3ce29d85"
+            ]
+        ]
+    },
+    {
+        "id": "c505bafefc6a7b9e",
+        "type": "function",
+        "z": "90e9a14d.cfa94",
+        "name": "GET PUN Value",
+        "func": "var debug = msg.debug;\n//preleva il grafico giornaliero \nvar ora = new Date().getHours();\n\n//preleva i dati\nvar punData = flow.get(\"PUN_DATA\");\nlog(\"ora\", ora);\nlog(\"PUN_DATA\", punData);\n\nmsg.payload = punData.pun[ora].value / 1000;\n\nlog(\"PUN\", msg.payload );\n\nreturn msg;\n\nfunction log(titolo, msg) {\n    if (debug) node.warn({ operazione: titolo, dettagli: msg });\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 640,
+        "y": 1260,
+        "wires": [
+            [
+                "e554ad1b4b896472"
+            ]
+        ]
+    },
+    {
+        "id": "5bdb3d1235230ab4",
+        "type": "html",
+        "z": "90e9a14d.cfa94",
+        "name": "",
+        "property": "payload",
+        "outproperty": "PUN",
+        "tag": "NORD",
+        "ret": "html",
+        "as": "single",
+        "x": 810,
+        "y": 1200,
+        "wires": [
+            [
+                "704c266270e3327a"
+            ]
+        ]
+    },
+    {
+        "id": "704c266270e3327a",
+        "type": "function",
+        "z": "90e9a14d.cfa94",
+        "name": "Set PUN_DATA",
+        "func": "var debug = msg.debug;\n//preleva il grafico giornaliero \n/*\nvar dati = { \n    giorno : msg.giorno\n    ,pun : msg.PUN\n };\n */\nvar dati = {\n    giorno: msg.giorno\n    , pun: msg.PUN.map((pun, index) => ({ value: parseFloat(pun.replace(',', '.')), ora: index }))\n};\n\n//salva i dati a livello di flusso\nflow.set(\"PUN_DATA\", dati);\n\nlog(\"PUN_DATA\", dati);\n\nreturn msg;\n\nfunction log(titolo, msg) {\n    if (debug) node.warn({ operazione: titolo, dettagli: msg });\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1040,
+        "y": 1200,
+        "wires": [
+            [
+                "c505bafefc6a7b9e"
+            ]
+        ]
+    },
+    {
+        "id": "c45bb731b4deec29",
+        "type": "inject",
+        "z": "90e9a14d.cfa94",
+        "name": "Test",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "giorno",
+                "v": "20221002",
+                "vt": "str"
+            },
+            {
+                "p": "debug",
+                "v": "true",
+                "vt": "bool"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "<?xml version=\"1.0\" standalone=\"yes\"?> <NewDataSet>   <xs:schema id=\"NewDataSet\" xmlns=\"\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:msdata=\"urn:schemas-microsoft-com:xml-msdata\">     <xs:element name=\"NewDataSet\" msdata:IsDataSet=\"true\" msdata:UseCurrentLocale=\"true\">       <xs:complexType>         <xs:choice minOccurs=\"0\" maxOccurs=\"unbounded\">           <xs:element name=\"Prezzi\">             <xs:complexType>               <xs:sequence>                 <xs:element name=\"Data\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"Mercato\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"Ora\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"PUN\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"NAT\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"CALA\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"CNOR\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"CSUD\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"NORD\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"SARD\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"SICI\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"SUD\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"AUST\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"COAC\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"COUP\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"CORS\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"FRAN\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"GREC\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"SLOV\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"SVIZ\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"BSP\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"MALT\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"XAUS\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"XFRA\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"MONT\" type=\"xs:string\" minOccurs=\"0\" />                 <xs:element name=\"XGRE\" type=\"xs:string\" minOccurs=\"0\" />               </xs:sequence>             </xs:complexType>           </xs:element>         </xs:choice>       </xs:complexType>     </xs:element>   </xs:schema>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>1</Ora>     <PUN>351,450000</PUN>     <NAT>351,450000</NAT>     <CALA>351,450000</CALA>     <CNOR>351,450000</CNOR>     <CSUD>351,450000</CSUD>     <NORD>351,450000</NORD>     <SARD>351,450000</SARD>     <SICI>351,450000</SICI>     <SUD>351,450000</SUD>     <AUST>351,450000</AUST>     <COAC>351,450000</COAC>     <COUP>351,450000</COUP>     <CORS>1750,000000</CORS>     <FRAN>351,450000</FRAN>     <GREC>351,450000</GREC>     <SLOV>351,450000</SLOV>     <SVIZ>351,450000</SVIZ>     <BSP>351,450000</BSP>     <MALT>351,450000</MALT>     <XAUS>351,450000</XAUS>     <XFRA>351,450000</XFRA>     <MONT>351,450000</MONT>     <XGRE>351,450000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>2</Ora>     <PUN>336,510000</PUN>     <NAT>336,510000</NAT>     <CALA>336,510000</CALA>     <CNOR>336,510000</CNOR>     <CSUD>336,510000</CSUD>     <NORD>336,510000</NORD>     <SARD>336,510000</SARD>     <SICI>336,510000</SICI>     <SUD>336,510000</SUD>     <AUST>336,510000</AUST>     <COAC>336,510000</COAC>     <COUP>336,510000</COUP>     <CORS>1750,000000</CORS>     <FRAN>336,510000</FRAN>     <GREC>336,510000</GREC>     <SLOV>336,510000</SLOV>     <SVIZ>336,510000</SVIZ>     <BSP>336,510000</BSP>     <MALT>336,510000</MALT>     <XAUS>336,510000</XAUS>     <XFRA>336,510000</XFRA>     <MONT>336,510000</MONT>     <XGRE>336,510000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>3</Ora>     <PUN>326,138700</PUN>     <NAT>326,800000</NAT>     <CALA>326,138700</CALA>     <CNOR>326,138700</CNOR>     <CSUD>326,138700</CSUD>     <NORD>326,138700</NORD>     <SARD>326,138700</SARD>     <SICI>326,138700</SICI>     <SUD>326,138700</SUD>     <AUST>326,138700</AUST>     <COAC>326,138700</COAC>     <COUP>326,138700</COUP>     <CORS>1750,000000</CORS>     <FRAN>326,138700</FRAN>     <GREC>326,138700</GREC>     <SLOV>326,138700</SLOV>     <SVIZ>326,138700</SVIZ>     <BSP>326,138700</BSP>     <MALT>326,138700</MALT>     <XAUS>326,138700</XAUS>     <XFRA>326,138700</XFRA>     <MONT>326,138700</MONT>     <XGRE>326,138700</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>4</Ora>     <PUN>315,193510</PUN>     <NAT>316,790000</NAT>     <CALA>315,193510</CALA>     <CNOR>315,193510</CNOR>     <CSUD>315,193510</CSUD>     <NORD>315,193510</NORD>     <SARD>315,193510</SARD>     <SICI>315,193510</SICI>     <SUD>315,193510</SUD>     <AUST>315,193510</AUST>     <COAC>315,193510</COAC>     <COUP>315,193510</COUP>     <CORS>1750,000000</CORS>     <FRAN>315,193510</FRAN>     <GREC>315,193510</GREC>     <SLOV>315,193510</SLOV>     <SVIZ>315,193510</SVIZ>     <BSP>315,193510</BSP>     <MALT>315,193510</MALT>     <XAUS>315,193510</XAUS>     <XFRA>315,193510</XFRA>     <MONT>315,193510</MONT>     <XGRE>315,193510</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>5</Ora>     <PUN>320,000000</PUN>     <NAT>320,000000</NAT>     <CALA>320,000000</CALA>     <CNOR>320,000000</CNOR>     <CSUD>320,000000</CSUD>     <NORD>320,000000</NORD>     <SARD>320,000000</SARD>     <SICI>320,000000</SICI>     <SUD>320,000000</SUD>     <AUST>320,000000</AUST>     <COAC>320,000000</COAC>     <COUP>320,000000</COUP>     <CORS>1750,000000</CORS>     <FRAN>320,000000</FRAN>     <GREC>320,000000</GREC>     <SLOV>320,000000</SLOV>     <SVIZ>320,000000</SVIZ>     <BSP>320,000000</BSP>     <MALT>320,000000</MALT>     <XAUS>320,000000</XAUS>     <XFRA>320,000000</XFRA>     <MONT>320,000000</MONT>     <XGRE>320,000000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>6</Ora>     <PUN>345,534410</PUN>     <NAT>347,000000</NAT>     <CALA>345,534410</CALA>     <CNOR>345,534410</CNOR>     <CSUD>345,534410</CSUD>     <NORD>345,534410</NORD>     <SARD>345,534410</SARD>     <SICI>345,534410</SICI>     <SUD>345,534410</SUD>     <AUST>345,534410</AUST>     <COAC>345,534410</COAC>     <COUP>345,534410</COUP>     <CORS>1750,000000</CORS>     <FRAN>345,534410</FRAN>     <GREC>345,534410</GREC>     <SLOV>345,534410</SLOV>     <SVIZ>345,534410</SVIZ>     <BSP>345,534410</BSP>     <MALT>345,534410</MALT>     <XAUS>345,534410</XAUS>     <XFRA>345,534410</XFRA>     <MONT>345,534410</MONT>     <XGRE>345,534410</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>7</Ora>     <PUN>440,071470</PUN>     <NAT>440,000000</NAT>     <CALA>440,071470</CALA>     <CNOR>440,071470</CNOR>     <CSUD>440,071470</CSUD>     <NORD>440,071470</NORD>     <SARD>440,071470</SARD>     <SICI>440,071470</SICI>     <SUD>440,071470</SUD>     <AUST>440,071470</AUST>     <COAC>440,071470</COAC>     <COUP>440,071470</COUP>     <CORS>1750,000000</CORS>     <FRAN>440,071470</FRAN>     <GREC>440,071470</GREC>     <SLOV>440,071470</SLOV>     <SVIZ>440,071470</SVIZ>     <BSP>440,071470</BSP>     <MALT>440,071470</MALT>     <XAUS>440,071470</XAUS>     <XFRA>440,071470</XFRA>     <MONT>440,071470</MONT>     <XGRE>440,071470</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>8</Ora>     <PUN>569,930000</PUN>     <NAT>570,000000</NAT>     <CALA>569,930000</CALA>     <CNOR>569,930000</CNOR>     <CSUD>569,930000</CSUD>     <NORD>569,930000</NORD>     <SARD>569,930000</SARD>     <SICI>569,930000</SICI>     <SUD>569,930000</SUD>     <AUST>569,930000</AUST>     <COAC>569,930000</COAC>     <COUP>569,930000</COUP>     <CORS>1750,000000</CORS>     <FRAN>569,930000</FRAN>     <GREC>569,930000</GREC>     <SLOV>569,930000</SLOV>     <SVIZ>569,930000</SVIZ>     <BSP>569,930000</BSP>     <MALT>569,930000</MALT>     <XAUS>569,930000</XAUS>     <XFRA>569,930000</XFRA>     <MONT>569,930000</MONT>     <XGRE>569,930000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>9</Ora>     <PUN>558,666900</PUN>     <NAT>560,100000</NAT>     <CALA>386,000000</CALA>     <CNOR>585,000000</CNOR>     <CSUD>585,000000</CSUD>     <NORD>585,000000</NORD>     <SARD>585,000000</SARD>     <SICI>386,000000</SICI>     <SUD>386,000000</SUD>     <AUST>585,000000</AUST>     <COAC>585,000000</COAC>     <COUP>585,000000</COUP>     <CORS>1750,000000</CORS>     <FRAN>585,000000</FRAN>     <GREC>386,000000</GREC>     <SLOV>585,000000</SLOV>     <SVIZ>585,000000</SVIZ>     <BSP>585,000000</BSP>     <MALT>386,000000</MALT>     <XAUS>585,000000</XAUS>     <XFRA>585,000000</XFRA>     <MONT>585,000000</MONT>     <XGRE>386,000000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>10</Ora>     <PUN>615,468820</PUN>     <NAT>600,020000</NAT>     <CALA>357,660000</CALA>     <CNOR>674,400000</CNOR>     <CSUD>585,000000</CSUD>     <NORD>674,400000</NORD>     <SARD>585,000000</SARD>     <SICI>357,660000</SICI>     <SUD>357,660000</SUD>     <AUST>674,400000</AUST>     <COAC>585,000000</COAC>     <COUP>674,400000</COUP>     <CORS>1750,000000</CORS>     <FRAN>674,400000</FRAN>     <GREC>357,660000</GREC>     <SLOV>674,400000</SLOV>     <SVIZ>674,400000</SVIZ>     <BSP>674,400000</BSP>     <MALT>357,660000</MALT>     <XAUS>674,400000</XAUS>     <XFRA>674,400000</XFRA>     <MONT>585,000000</MONT>     <XGRE>357,660000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>11</Ora>     <PUN>525,640470</PUN>     <NAT>440,950000</NAT>     <CALA>320,000000</CALA>     <CNOR>584,602370</CNOR>     <CSUD>500,000000</CSUD>     <NORD>584,602370</NORD>     <SARD>200,000000</SARD>     <SICI>320,000000</SICI>     <SUD>320,000000</SUD>     <AUST>584,602370</AUST>     <COAC>200,000000</COAC>     <COUP>584,602370</COUP>     <CORS>1750,000000</CORS>     <FRAN>584,602370</FRAN>     <GREC>320,000000</GREC>     <SLOV>584,602370</SLOV>     <SVIZ>584,602370</SVIZ>     <BSP>584,602370</BSP>     <MALT>320,000000</MALT>     <XAUS>584,602370</XAUS>     <XFRA>584,602370</XFRA>     <MONT>500,000000</MONT>     <XGRE>320,000000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>12</Ora>     <PUN>501,411470</PUN>     <NAT>416,000000</NAT>     <CALA>300,200000</CALA>     <CNOR>558,864330</CNOR>     <CSUD>500,000000</CSUD>     <NORD>558,864330</NORD>     <SARD>40,000000</SARD>     <SICI>300,200000</SICI>     <SUD>300,200000</SUD>     <AUST>558,864330</AUST>     <COAC>40,000000</COAC>     <COUP>558,864330</COUP>     <CORS>1750,000000</CORS>     <FRAN>558,864330</FRAN>     <GREC>300,200000</GREC>     <SLOV>558,864330</SLOV>     <SVIZ>558,864330</SVIZ>     <BSP>558,864330</BSP>     <MALT>300,200000</MALT>     <XAUS>558,864330</XAUS>     <XFRA>558,864330</XFRA>     <MONT>500,000000</MONT>     <XGRE>300,200000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>13</Ora>     <PUN>416,909440</PUN>     <NAT>374,000000</NAT>     <CALA>200,000000</CALA>     <CNOR>535,363430</CNOR>     <CSUD>200,000000</CSUD>     <NORD>535,363430</NORD>     <SARD>40,000000</SARD>     <SICI>200,000000</SICI>     <SUD>200,000000</SUD>     <AUST>535,363430</AUST>     <COAC>40,000000</COAC>     <COUP>535,363430</COUP>     <CORS>1750,000000</CORS>     <FRAN>535,363430</FRAN>     <GREC>200,000000</GREC>     <SLOV>535,363430</SLOV>     <SVIZ>535,363430</SVIZ>     <BSP>535,363430</BSP>     <MALT>200,000000</MALT>     <XAUS>535,363430</XAUS>     <XFRA>535,363430</XFRA>     <MONT>200,000000</MONT>     <XGRE>200,000000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>14</Ora>     <PUN>377,481880</PUN>     <NAT>372,030000</NAT>     <CALA>126,680000</CALA>     <CNOR>503,771280</CNOR>     <CSUD>126,680000</CSUD>     <NORD>503,771280</NORD>     <SARD>99,000000</SARD>     <SICI>126,680000</SICI>     <SUD>126,680000</SUD>     <AUST>503,771280</AUST>     <COAC>99,000000</COAC>     <COUP>503,771280</COUP>     <CORS>1750,000000</CORS>     <FRAN>503,771280</FRAN>     <GREC>126,680000</GREC>     <SLOV>503,771280</SLOV>     <SVIZ>503,771280</SVIZ>     <BSP>503,771280</BSP>     <MALT>126,680000</MALT>     <XAUS>503,771280</XAUS>     <XFRA>503,771280</XFRA>     <MONT>126,680000</MONT>     <XGRE>126,680000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>15</Ora>     <PUN>427,419830</PUN>     <NAT>374,000000</NAT>     <CALA>262,920000</CALA>     <CNOR>509,000000</CNOR>     <CSUD>262,920000</CSUD>     <NORD>509,000000</NORD>     <SARD>200,000000</SARD>     <SICI>262,920000</SICI>     <SUD>262,920000</SUD>     <AUST>509,000000</AUST>     <COAC>200,000000</COAC>     <COUP>509,000000</COUP>     <CORS>1750,000000</CORS>     <FRAN>509,000000</FRAN>     <GREC>262,920000</GREC>     <SLOV>509,000000</SLOV>     <SVIZ>509,000000</SVIZ>     <BSP>509,000000</BSP>     <MALT>262,920000</MALT>     <XAUS>509,000000</XAUS>     <XFRA>509,000000</XFRA>     <MONT>262,920000</MONT>     <XGRE>262,920000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>16</Ora>     <PUN>421,784700</PUN>     <NAT>374,000000</NAT>     <CALA>299,490000</CALA>     <CNOR>483,999790</CNOR>     <CSUD>299,490000</CSUD>     <NORD>483,999790</NORD>     <SARD>200,000000</SARD>     <SICI>299,490000</SICI>     <SUD>299,490000</SUD>     <AUST>483,999790</AUST>     <COAC>200,000000</COAC>     <COUP>483,999790</COUP>     <CORS>1750,000000</CORS>     <FRAN>483,999790</FRAN>     <GREC>299,490000</GREC>     <SLOV>483,999790</SLOV>     <SVIZ>483,999790</SVIZ>     <BSP>483,999790</BSP>     <MALT>299,490000</MALT>     <XAUS>483,999790</XAUS>     <XFRA>483,999790</XFRA>     <MONT>299,490000</MONT>     <XGRE>299,490000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>17</Ora>     <PUN>396,244790</PUN>     <NAT>380,470000</NAT>     <CALA>357,660000</CALA>     <CNOR>426,795400</CNOR>     <CSUD>357,660000</CSUD>     <NORD>426,795400</NORD>     <SARD>40,000000</SARD>     <SICI>357,660000</SICI>     <SUD>357,660000</SUD>     <AUST>426,795400</AUST>     <COAC>40,000000</COAC>     <COUP>426,795400</COUP>     <CORS>1750,000000</CORS>     <FRAN>426,795400</FRAN>     <GREC>357,660000</GREC>     <SLOV>426,795400</SLOV>     <SVIZ>426,795400</SVIZ>     <BSP>426,795400</BSP>     <MALT>357,660000</MALT>     <XAUS>426,795400</XAUS>     <XFRA>426,795400</XFRA>     <MONT>357,660000</MONT>     <XGRE>357,660000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>18</Ora>     <PUN>420,645440</PUN>     <NAT>402,000000</NAT>     <CALA>377,600000</CALA>     <CNOR>445,008450</CNOR>     <CSUD>377,600000</CSUD>     <NORD>445,008450</NORD>     <SARD>310,730000</SARD>     <SICI>377,600000</SICI>     <SUD>377,600000</SUD>     <AUST>445,008450</AUST>     <COAC>310,730000</COAC>     <COUP>445,008450</COUP>     <CORS>1750,000000</CORS>     <FRAN>445,008450</FRAN>     <GREC>377,600000</GREC>     <SLOV>445,008450</SLOV>     <SVIZ>445,008450</SVIZ>     <BSP>445,008450</BSP>     <MALT>377,600000</MALT>     <XAUS>445,008450</XAUS>     <XFRA>445,008450</XFRA>     <MONT>377,600000</MONT>     <XGRE>377,600000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>19</Ora>     <PUN>495,381490</PUN>     <NAT>446,770000</NAT>     <CALA>441,720000</CALA>     <CNOR>523,188560</CNOR>     <CSUD>441,720000</CSUD>     <NORD>523,188560</NORD>     <SARD>441,720000</SARD>     <SICI>441,720000</SICI>     <SUD>441,720000</SUD>     <AUST>523,188560</AUST>     <COAC>441,720000</COAC>     <COUP>523,188560</COUP>     <CORS>1750,000000</CORS>     <FRAN>523,188560</FRAN>     <GREC>441,720000</GREC>     <SLOV>523,188560</SLOV>     <SVIZ>523,188560</SVIZ>     <BSP>523,188560</BSP>     <MALT>441,720000</MALT>     <XAUS>523,188560</XAUS>     <XFRA>523,188560</XFRA>     <MONT>441,720000</MONT>     <XGRE>441,720000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>20</Ora>     <PUN>605,000000</PUN>     <NAT>605,000000</NAT>     <CALA>605,000000</CALA>     <CNOR>605,000000</CNOR>     <CSUD>605,000000</CSUD>     <NORD>605,000000</NORD>     <SARD>605,000000</SARD>     <SICI>605,000000</SICI>     <SUD>605,000000</SUD>     <AUST>605,000000</AUST>     <COAC>605,000000</COAC>     <COUP>605,000000</COUP>     <CORS>1750,000000</CORS>     <FRAN>605,000000</FRAN>     <GREC>605,000000</GREC>     <SLOV>605,000000</SLOV>     <SVIZ>605,000000</SVIZ>     <BSP>605,000000</BSP>     <MALT>605,000000</MALT>     <XAUS>605,000000</XAUS>     <XFRA>605,000000</XFRA>     <MONT>605,000000</MONT>     <XGRE>605,000000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>21</Ora>     <PUN>520,000000</PUN>     <NAT>523,100000</NAT>     <CALA>520,000000</CALA>     <CNOR>520,000000</CNOR>     <CSUD>520,000000</CSUD>     <NORD>520,000000</NORD>     <SARD>520,000000</SARD>     <SICI>520,000000</SICI>     <SUD>520,000000</SUD>     <AUST>520,000000</AUST>     <COAC>520,000000</COAC>     <COUP>520,000000</COUP>     <CORS>1750,000000</CORS>     <FRAN>520,000000</FRAN>     <GREC>520,000000</GREC>     <SLOV>520,000000</SLOV>     <SVIZ>520,000000</SVIZ>     <BSP>520,000000</BSP>     <MALT>520,000000</MALT>     <XAUS>520,000000</XAUS>     <XFRA>520,000000</XFRA>     <MONT>520,000000</MONT>     <XGRE>520,000000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>22</Ora>     <PUN>417,312450</PUN>     <NAT>415,490000</NAT>     <CALA>403,110000</CALA>     <CNOR>424,993390</CNOR>     <CSUD>403,110000</CSUD>     <NORD>424,993390</NORD>     <SARD>403,110000</SARD>     <SICI>403,110000</SICI>     <SUD>403,110000</SUD>     <AUST>424,993390</AUST>     <COAC>403,110000</COAC>     <COUP>424,993390</COUP>     <CORS>1750,000000</CORS>     <FRAN>424,993390</FRAN>     <GREC>403,110000</GREC>     <SLOV>424,993390</SLOV>     <SVIZ>424,993390</SVIZ>     <BSP>424,993390</BSP>     <MALT>403,110000</MALT>     <XAUS>424,993390</XAUS>     <XFRA>424,993390</XFRA>     <MONT>403,110000</MONT>     <XGRE>403,110000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>23</Ora>     <PUN>392,202120</PUN>     <NAT>384,740000</NAT>     <CALA>383,450000</CALA>     <CNOR>397,027230</CNOR>     <CSUD>383,450000</CSUD>     <NORD>397,027230</NORD>     <SARD>383,450000</SARD>     <SICI>383,450000</SICI>     <SUD>383,450000</SUD>     <AUST>397,027230</AUST>     <COAC>383,450000</COAC>     <COUP>397,027230</COUP>     <CORS>1750,000000</CORS>     <FRAN>397,027230</FRAN>     <GREC>383,450000</GREC>     <SLOV>397,027230</SLOV>     <SVIZ>397,027230</SVIZ>     <BSP>397,027230</BSP>     <MALT>383,450000</MALT>     <XAUS>397,027230</XAUS>     <XFRA>397,027230</XFRA>     <MONT>383,450000</MONT>     <XGRE>383,450000</XGRE>   </Prezzi>   <Prezzi>     <Data>20220929</Data>     <Mercato>MGP</Mercato>     <Ora>24</Ora>     <PUN>369,350910</PUN>     <NAT>374,000000</NAT>     <CALA>360,000000</CALA>     <CNOR>374,460000</CNOR>     <CSUD>360,000000</CSUD>     <NORD>374,460000</NORD>     <SARD>360,000000</SARD>     <SICI>360,000000</SICI>     <SUD>360,000000</SUD>     <AUST>374,460000</AUST>     <COAC>360,000000</COAC>     <COUP>374,460000</COUP>     <CORS>1750,000000</CORS>     <FRAN>374,460000</FRAN>     <GREC>360,000000</GREC>     <SLOV>374,460000</SLOV>     <SVIZ>374,460000</SVIZ>     <BSP>374,460000</BSP>     <MALT>360,000000</MALT>     <XAUS>374,460000</XAUS>     <XFRA>374,460000</XFRA>     <MONT>360,000000</MONT>     <XGRE>360,000000</XGRE>   </Prezzi> </NewDataSet>",
+        "payloadType": "str",
+        "x": 610,
+        "y": 1160,
+        "wires": [
+            [
+                "5bdb3d1235230ab4"
+            ]
+        ]
+    },
+    {
+        "id": "b6b080d2b9c414ad",
+        "type": "link call",
+        "z": "90e9a14d.cfa94",
+        "name": "",
+        "links": [
+            "cd25314f5a7ab6f3"
+        ],
+        "linkType": "static",
+        "timeout": "30",
+        "x": 600,
+        "y": 1200,
+        "wires": [
+            [
+                "5bdb3d1235230ab4"
+            ]
+        ]
+    },
+    {
+        "id": "b671f32d48d12b87",
+        "type": "function",
+        "z": "90e9a14d.cfa94",
+        "name": "Setup MGP_Prezzi",
+        "func": "var debug = msg.debug;\n//imposta la dataper scaricare il pun\n\nvar giorno = new Date();\nvar gg = giorno.getFullYear() +\n    ((giorno.getMonth() + 1).toString()).padStart(2, '0') +\n    (giorno.getDate().toString()).padStart(2, '0');\n//giorno.setHours(0, 0, 0, 0);\nvar file = gg + 'MGPPrezzi.xml';\nvar path = 'https://www.mercatoelettrico.org/It/WebServerDataStore/MGP_Prezzi/';\n\nmsg.url = path + file;\nmsg.giorno = gg;\n\n//contiene i dati del giorno\nvar data = flow.get(\"PUN_DATA\");\n\nif (data == null || data.giorno != gg ){\n    msg.update = true;\n}\n\nif(msg.debug) msg.update = true;\n\nreturn msg;\n\nfunction log(titolo, msg) {\n    if (debug) node.warn({ operazione: titolo, dettagli: msg });\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 390,
+        "y": 1180,
+        "wires": [
+            [
+                "eec56f273f70705c"
+            ]
+        ]
+    },
+    {
+        "id": "eec56f273f70705c",
+        "type": "switch",
+        "z": "90e9a14d.cfa94",
+        "name": "Update?",
+        "property": "update",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "true"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 420,
+        "y": 1240,
+        "wires": [
+            [
+                "b6b080d2b9c414ad"
+            ],
+            [
+                "c505bafefc6a7b9e"
+            ]
+        ]
+    },
+    {
+        "id": "511b26cba568233a",
+        "type": "inject",
+        "z": "90e9a14d.cfa94",
+        "name": "Ogni ora",
+        "props": [
+            {
+                "p": "debug",
+                "v": "false",
+                "vt": "bool"
+            }
+        ],
+        "repeat": "3600",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 220,
+        "y": 1180,
+        "wires": [
+            [
+                "b671f32d48d12b87"
+            ]
+        ]
+    },
+    {
+        "id": "d7bfd52125af2ec9",
+        "type": "inject",
+        "z": "90e9a14d.cfa94",
+        "name": "Test",
+        "props": [
+            {
+                "p": "debug",
+                "v": "true",
+                "vt": "bool"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 230,
+        "y": 1240,
+        "wires": [
+            [
+                "b671f32d48d12b87"
+            ]
+        ]
+    },
+    {
+        "id": "67e1c7fe3ce29d85",
+        "type": "ha-sensor",
+        "z": "90e9a14d.cfa94",
+        "name": "PUN",
+        "entityConfig": "1b8f29baebcceee9",
+        "version": 0,
+        "state": "payload",
+        "stateType": "msg",
+        "attributes": [
+            {
+                "property": "last_update",
+                "value": "",
+                "valueType": "date"
+            }
+        ],
+        "inputOverride": "allow",
+        "outputProperties": [],
+        "x": 970,
+        "y": 1300,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "280b5f236e1f67c7",
+        "type": "group",
+        "z": "90e9a14d.cfa94",
+        "style": {
+            "stroke": "#999999",
+            "stroke-opacity": "1",
+            "fill": "none",
+            "fill-opacity": "1",
+            "label": true,
+            "label-position": "nw",
+            "color": "#a4a4a4"
+        },
+        "nodes": [
+            "157ca8a656aa4dd8",
+            "5b55d79f46a6a4e5",
+            "77c43eedf6f7100d",
+            "8e6b7ba3ebd55716",
+            "d5fd5c8dd6ba20e6",
+            "64b96e9fb193299f",
+            "a11667af86d2956a",
+            "475d087490895589"
+        ],
+        "x": 354,
+        "y": 1339,
+        "w": 532,
+        "h": 202
+    },
+    {
+        "id": "afaccb4ff5178a6b",
+        "type": "subflow",
+        "name": "msg-Debug",
+        "info": "",
+        "category": "",
+        "in": [
+            {
+                "x": 160,
+                "y": 120,
+                "wires": [
+                    {
+                        "id": "6abcbc9f7b3e4ea3"
+                    }
+                ]
+            }
+        ],
+        "out": [
+            {
+                "x": 420,
+                "y": 120,
+                "wires": [
+                    {
+                        "id": "6abcbc9f7b3e4ea3",
+                        "port": 0
+                    }
+                ]
+            }
+        ],
+        "env": [
+            {
+                "name": "Topic",
+                "type": "str",
+                "value": "Debug"
+            }
+        ],
+        "meta": {},
+        "color": "#87A980",
+        "icon": "node-red/debug.svg"
+    },
+    {
+        "id": "6abcbc9f7b3e4ea3",
+        "type": "function",
+        "z": "afaccb4ff5178a6b",
+        "name": "Log",
+        "func": "var debug= msg.debug;\n\nvar logName = env.get(\"Topic\");\n\nlog(logName, msg);\n\nreturn msg;\n\n\nfunction log(titolo, msg) {\n    if (debug) node.warn({ operazione: titolo, dettagli: msg });\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 290,
+        "y": 120,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "157ca8a656aa4dd8",
+        "type": "http request",
+        "z": "90e9a14d.cfa94",
+        "g": "280b5f236e1f67c7",
+        "name": "https://www.mercatoelettrico",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [
+            {
+                "keyType": "other",
+                "keyValue": "Accept",
+                "valueType": "other",
+                "valueValue": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+            },
+            {
+                "keyType": "other",
+                "keyValue": "Accept-Encoding",
+                "valueType": "other",
+                "valueValue": "gzip, deflate, br"
+            },
+            {
+                "keyType": "other",
+                "keyValue": "Cache-Control",
+                "valueType": "other",
+                "valueValue": "max-age=0"
+            },
+            {
+                "keyType": "other",
+                "keyValue": "Content-Type",
+                "valueType": "other",
+                "valueValue": "application/x-www-form-urlencoded"
+            },
+            {
+                "keyType": "other",
+                "keyValue": "",
+                "valueType": "other",
+                "valueValue": ""
+            }
+        ],
+        "x": 560,
+        "y": 1420,
+        "wires": [
+            [
+                "5b55d79f46a6a4e5",
+                "64b96e9fb193299f"
+            ]
+        ]
+    },
+    {
+        "id": "5b55d79f46a6a4e5",
+        "type": "function",
+        "z": "90e9a14d.cfa94",
+        "g": "280b5f236e1f67c7",
+        "name": "set payload and headers",
+        "func": "var debug= msg.debug;\nif (debug) await sleep(500);\n\nvar cookies = { id: \"\", data: [] };\n\n//inizializza\nflow.set(\"cookies\", cookies);\ncookies = MergeCookies(cookies,\n    msg.headers[\"set-cookie\"][0].match(/(ASP.NET_SessionId=[^;]*)/)[1]\n);\n\n//inizializza\nflow.set(\"cookies\", cookies);\n\nlog(\"cookies\", cookies);\n\n//recupera il viewstate\n\nvar __VIEWSTATE = msg.payload.match(/name=\"__VIEWSTATE\"[\\s\\S]*?value\\s*=\\s*\"([^\"]*)/)[1];\nvar __VIEWSTATEGENERATOR = msg.payload.match(/name=\"__VIEWSTATEGENERATOR\"[\\s\\S]*?value\\s*=\\s*\"([^\"]*)/)[1];\nvar __PREVIOUSPAGE = msg.payload.match(/name=\"__PREVIOUSPAGE\"[\\s\\S]*?value\\s*=\\s*\"([^\"]*)/)[1];\nvar __EVENTVALIDATION = msg.payload.match(/name=\"__EVENTVALIDATION\"[\\s\\S]*?value\\s*=\\s*\"([^\"]*)/)[1];\n\nmsg.payload = \"__EVENTTARGET=&__EVENTARGUMENT=&__LASTFOCUS=&__VIEWSTATE=%2FwEPDwULLTIwNTEyNDQzNzQPZBYCZg9kFgICAw9kFgICAQ9kFgQCDA9kFgJmD2QWAmYPZBYCAgkPD2QWBB4Kb25rZXlwcmVzcwUccmV0dXJuIGludmlhUFdEKHRoaXMsZXZlbnQpOx4MYXV0b2NvbXBsZXRlBQNvZmZkAhUPZBYCAgEPDxYCHg1PbkNsaWVudENsaWNrBSZqYXZhc2NyaXB0OndpbmRvdy5vcGVuKCc%2Fc3RhbXBhPXRydWUnKWRkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYFBQxjdGwwMCRJbWFnZTEFEmN0bDAwJEltYWdlQnV0dG9uMQUgY3RsMDAkQ29udGVudFBsYWNlSG9sZGVyMSRzdGFtcGEFJGN0bDAwJENvbnRlbnRQbGFjZUhvbGRlcjEkQ0JBY2NldHRvMQUkY3RsMDAkQ29udGVudFBsYWNlSG9sZGVyMSRDQkFjY2V0dG8yh3oMOJtjmjFDG8x3vF4Wn0A7KMMUR15KKwkM4mKjU1g%3D&__VIEWSTATEGENERATOR=BD5243C0&__SCROLLPOSITIONX=0&__SCROLLPOSITIONY=0&__PREVIOUSPAGE=cZ9asoMdEhcsdMTrKLddyuDgUqrpgV44mkItwJfPMdC5pTBV2YSxs8G-heXd_cSe0LgJT2dUbmEwn5EAxW2CKqwwsuEEvSwkj_TDS8XqtiFWyG906u2-XjhdXsqvVULm0&__EVENTVALIDATION=%2FwEdABOv4ihzuheOinWQFglKJnS5cS%2Fs8I39AyxLz4tn%2BAkBiEW%2BokpiqwYG%2BB4aTa9o%2Bs43drX32rKpFiwqoHxZnWEOD4zZrxX92uOlyIx1SyGTQmV8haT0EfVomfKCKov4HgnZl%2FXwcz7QqxVnz%2BOmFVuWzNBM98trssXld5dD73vgQX4H%2F0z%2F058uP3NmytG8PXozrkfQ7SmiPGgdsZPdEEV8g%2Fgu4%2BzhSeI0ttI2ADLh%2FwU7Nz%2F6FKjnm2sSszw4FMr8VEDvc%2BzuMc1oKpjHdCosjDu35o5CUn6umW4JNpE1p4raaQaFnXKaLuO1sKRm4e9ZUwtJIYRkZxZmb4HmgHR6ltkgVwReXnm%2BEHOYvXjKP0Sd1PBpsO2hEyKj10xH8juA%2BrwVNruExpEBEKBupGsoVRDdQT5zC1dV8%2FKnN4raH3%2FJfRQ85SbkzJOEqhECjXQ%3D&ctl00%24tbTitolo=cerca+nel+sito&ctl00%24UserName=&ctl00%24Password=&ctl00%24ContentPlaceHolder1%24CBAccetto1=on&ctl00%24ContentPlaceHolder1%24CBAccetto2=on&ctl00%24ContentPlaceHolder1%24Button1=Accetto\";\n\nvar cks = GetCookieString(cookies);\n\nmsg.headers = {\n    \"Accept\": \"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\"\n    , \"Accept-Encoding\": \"gzip, deflate, br\"\n    , \"Accept-Language\": \"it-IT,it;q=0.9\"\n    , \"Cache-Control\": \"max-age=0\"\n    , \"Connection\": \"keep-alive\"\n    , \"Content-Type\": \"application/x-www-form-urlencoded\"\n    , \"Cookie\": cks\n    , \"Host\": \"www.mercatoelettrico.org\"\n    , \"Origin\": \"https://www.mercatoelettrico.org\"\n    , \"Referer\": \"https://www.mercatoelettrico.org/It/Tools/Accessodati.aspx?ReturnUrl=/it/Statistiche/ME/DatiSintesi.aspx\"\n    , \"Sec-Fetch-Dest\": \"document\"\n    , \"Sec-Fetch-Mode\": \"navigate\"\n    , \"Sec-Fetch-Site\": \"same-origin\"\n    , \"Sec-Fetch-User\": \"?1\"\n    , \"Upgrade-Insecure-Requests\": \"1\"\n    , \"User-Agent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36\"\n    , \"sec-ch-ua\": '\"Google Chrome\";v=\"105\", \"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"105\"'\n    , \"sec-ch-ua-mobile\": \"?0\"\n    , \"sec-ch-ua-platform\": \"Windows\"        \n}\n\nmsg.url = msg.responseUrl;\n\nlog(\"messaggio\", msg);\n\nreturn msg;\n\n\nfunction log(titolo, msg) {\n    if (debug) node.warn({ operazione: titolo, dettagli: msg });\n}\nfunction GetCookieString(cks) {\n    var str = cks.id;\n    cks.data.forEach(function (element) {\n        str += element.key + \"=\" + element.value + \"; \" ;\n    });\n    if(str.endsWith(\"; \")) {\n        str = str.substring(0, str.length - 2);\n    }\n    return str;\n}\n\nfunction MergeCookies(cks, c) {\n    if (typeof c === \"string\") {\n        var items = c.split(\";\");\n        //log(\"items\", items);\n\n        items.forEach((element, index) => {\n            if (index == 0 && element.split(\":\").length > 1) {\n                var id = element.split(\":\");\n                cks.id = id[1].trim();\n\n                //log(\"cks\", cks);\n            } else {\n                var item = element.split(\"=\");\n                if (item.length > 1) {\n                    //log(\"item\", item);\n\n                    var found = cks.data.find(i => i.key == item[0].trim());\n                    //log(\"found\",found);\n\n                    if (found == undefined) {\n                        cks.data.push({ key: item[0].trim(), value: item[1].trim() });\n                    } else {\n                        found.value = item[1].trim();\n                    }\n                }\n            }\n        })\n    }\n    return cks;\n}\n\nfunction sleep(ms) {\n    return new Promise(resolve => setTimeout(resolve, ms));\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 550,
+        "y": 1460,
+        "wires": [
+            [
+                "77c43eedf6f7100d"
+            ]
+        ]
+    },
+    {
+        "id": "77c43eedf6f7100d",
+        "type": "http request",
+        "z": "90e9a14d.cfa94",
+        "g": "280b5f236e1f67c7",
+        "name": "AccessoDati",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 510,
+        "y": 1500,
+        "wires": [
+            [
+                "a11667af86d2956a"
+            ]
+        ]
+    },
+    {
+        "id": "8e6b7ba3ebd55716",
+        "type": "link in",
+        "z": "90e9a14d.cfa94",
+        "g": "280b5f236e1f67c7",
+        "name": "GME-IN",
+        "links": [],
+        "x": 405,
+        "y": 1420,
+        "wires": [
+            [
+                "157ca8a656aa4dd8"
+            ]
+        ]
+    },
+    {
+        "id": "d5fd5c8dd6ba20e6",
+        "type": "comment",
+        "z": "90e9a14d.cfa94",
+        "g": "280b5f236e1f67c7",
+        "name": "Accesso al GME con la pagina in msg.url",
+        "info": "",
+        "x": 540,
+        "y": 1380,
+        "wires": []
+    },
+    {
+        "id": "64b96e9fb193299f",
+        "type": "subflow:afaccb4ff5178a6b",
+        "z": "90e9a14d.cfa94",
+        "g": "280b5f236e1f67c7",
+        "name": "",
+        "env": [
+            {
+                "name": "Topic",
+                "value": "Setup GME",
+                "type": "str"
+            },
+            {
+                "name": "LogName",
+                "value": "Setup Response",
+                "type": "str"
+            }
+        ],
+        "x": 790,
+        "y": 1420,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "a11667af86d2956a",
+        "type": "subflow:afaccb4ff5178a6b",
+        "z": "90e9a14d.cfa94",
+        "g": "280b5f236e1f67c7",
+        "name": "",
+        "env": [
+            {
+                "name": "Topic",
+                "value": "GME Response",
+                "type": "str"
+            },
+            {
+                "name": "LogName",
+                "value": "Get Data Response",
+                "type": "str"
+            }
+        ],
+        "x": 730,
+        "y": 1500,
+        "wires": [
+            [
+                "475d087490895589"
+            ]
+        ]
+    },
+    {
+        "id": "475d087490895589",
+        "type": "link out",
+        "z": "90e9a14d.cfa94",
+        "g": "280b5f236e1f67c7",
+        "name": "GME - OUT",
+        "mode": "return",
+        "links": [],
+        "x": 845,
+        "y": 1500,
+        "wires": []
+    },
+    {
+        "id": "1b8f29baebcceee9",
+        "type": "ha-entity-config",
+        "server": "1c37c350.3f926d",
+        "deviceConfig": "",
+        "name": "sensor config for PUN",
+        "version": 6,
+        "entityType": "sensor",
+        "haConfig": [
+            {
+                "property": "name",
+                "value": "PUN"
+            },
+            {
+                "property": "device_class",
+                "value": "sensor"
+            },
+            {
+                "property": "icon",
+                "value": ""
+            },
+            {
+                "property": "unit_of_measurement",
+                "value": "EUR/kWh"
+            },
+            {
+                "property": "state_class",
+                "value": ""
+            },
+            {
+                "property": "last_reset",
+                "value": ""
+            }
+        ],
+        "resend": true
+    },
+    {
+        "id": "1c37c350.3f926d",
+        "type": "server",
+        "name": "Home Assistant",
+        "version": 5,
+        "addon": true,
+        "rejectUnauthorizedCerts": true,
+        "ha_boolean": "y|yes|true|on|home|open",
+        "connectionDelay": true,
+        "cacheJson": true,
+        "heartbeat": false,
+        "heartbeatInterval": "30",
+        "areaSelector": "friendlyName",
+        "deviceSelector": "friendlyName",
+        "entitySelector": "friendlyName",
+        "statusSeparator": "at: ",
+        "statusYear": "hidden",
+        "statusMonth": "short",
+        "statusDay": "numeric",
+        "statusHourCycle": "h23",
+        "statusTimeFormat": "h:m",
+        "enableGlobalContextStore": true
+    }
+]
